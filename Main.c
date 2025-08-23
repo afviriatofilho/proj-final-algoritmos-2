@@ -5,6 +5,9 @@
 //am_ - "amount", quantidades
 //yn_ - "yes/no", sim ou não
 
+//PREFIXOS DE FUNÇÕES:
+//menu_ - Funções relacionadas à navegação dentro do programa.
+
 //VARIÁVEL GLOBAL
 //Não consigo pensar num jeito melhor de detectar se o usuário inseriu um
 //TCC durante o preenchimento das matérias que não seja uma variável de
@@ -801,30 +804,13 @@ Aluno read_aluno(FILE* file) {
 	}
 }
 
-void delete_aluno(FILE* file, double matricula_seek) {
+void delete_aluno(FILE* file) {
 	FILE* new_file = fopen("aluno_new.dat", "w+");
 	fseek(file, 0, SEEK_SET);
-	int count = 0, c = 0;
-	while ((c = fgetc(file)) != EOF) {
-		if (c == '\n') {
-			count++;
-		}
-	}
-
-	fseek(file, 0, SEEK_SET);
-	double matricula = 0.0;
-	char nome[100] = { '\0' };
-	int semestre = 0;
-	for (int i = 0; i < count; i++) {
-		fscanf(file, ALUNO_FORMAT_IN, &matricula, nome, &semestre);
-		if (matricula != matricula_seek) {
-			write_aluno(new_file, matricula, nome, semestre);
-		}
-		fseek(file, 2, SEEK_CUR);
-	}
 
 	fclose(file);
 	fclose(new_file);
+	
 	if (remove("aluno.dat") == 0 && rename("aluno_new.dat", "aluno.dat") == 0) {
 		printf("Aluno deletado com sucesso!\n");
 	}
@@ -834,9 +820,11 @@ void delete_aluno(FILE* file, double matricula_seek) {
 	fopen("aluno.dat", "a+");
 }
 
-void update_aluno(FILE* file, double matricula_seek, char* nome, int semestre) {
-	delete_aluno(file, matricula_seek);
-	write_aluno(file, matricula_seek, nome, semestre);
+void update_aluno(FILE* file, char* nome, int semestre) {
+	Aluno save_aluno_id = read_aluno(file);
+
+	delete_aluno(file);
+	write_aluno(file, save_aluno_id.matricula, nome, semestre);
 	printf("Aluno atualizado com sucesso!\n");
 }
 
@@ -895,8 +883,8 @@ void initial_filling(FILE* grade_curricular, FILE* aluno, FILE* materia, FILE* t
 	}
 }
 
-void print_main_menu() {
-	printf("-- AGENDA 33 v1.0 --\n");
+void menu_print_main() {
+	printf("\n-- AGENDA 33 v1.0 --\n");
 	printf("Pressione o numero desejado e depois tecle ENTER\n");
 	printf("1. Meu Cadastro\n");
 	printf("2. Grade Curricular\n");
@@ -909,12 +897,76 @@ void print_main_menu() {
 	printf("Sua entrada: ");
 }
 
-void menu_aluno() {
+void menu_print_aluno_options(int type) {
+	switch (type) {
+	case (1):
+		printf("\n1. Ver dados do aluno\n");
+		printf("2. Atualizar dados do aluno\n");
+		printf("3. De volta ao menu principal\n");
+		printf("\nSua entrada: ");
+		break;
+	case (2):
+		printf("\n1. Atualizar nome/nome social e/ou semestre\n");
+		printf("2. Voltar\n");
+		printf("Nao e possivel alterar o codigo da matricula.\n");
+		printf("\nSua entrada: ");
+		break;
+	default:
+		printf("\nSe voce esta vendo essa mensagem, houve um erro da parte do programador. Por favor, comunique isso a ele.\n");
+	}
+}
+
+void menu_aluno_update_data(FILE* file, Aluno al) {
+	char aluno_upd_dat_next_action = '0';
+	
+	do {
+		menu_print_aluno_options(2);
+		scanf("\n%c", &aluno_upd_dat_next_action);
+		switch (aluno_upd_dat_next_action) {
+		case ('1'):
+			printf("\nSe nao quiser alterar um ou ambos os valores, apenas digite o mesmo valor\n");
+			
+			printf("\nNome atualmente cadastrado: %s\n", al.nome);
+			printf("Insira o novo nome: ");
+			char nome_upd[100] = { '\0' };
+			scanf("\n%[^\n]", &nome_upd);
+			
+			printf("\nSemestre atualmente cadastrado: %d\n", al.semestre);
+			printf("Insira o novo semestre: ");
+			int semestre_upd = 0;
+			scanf("%d", &semestre_upd);
+
+			update_aluno(file, nome_upd, semestre_upd);
+
+			break;
+		case ('2'):
+			printf("Voltando.\n");
+			break;
+		default:
+			printf("Erro: caracter invalido digitado.\n");
+		}
+
+	} while (aluno_upd_dat_next_action != '2');
+
+}
+
+void menu_aluno(FILE* file) {
 	char aluno_next_action = '0';
 	do {
-		printf("PLACEHOLDER IMPLEMENTATION. TYPE e (LOWERCASE) TO EXIT.\n");
+		menu_print_aluno_options(1);
 		scanf("\n%c", &aluno_next_action);
-	} while (aluno_next_action != 'e');
+
+		Aluno al = read_aluno(file);
+
+		switch (aluno_next_action) {
+		case ('1'):
+			printf("O aluno cadastrado tem os seguintes dados: ");
+			print_aluno(al);
+			break;
+		case ('2'):
+			menu_aluno_update_data(file, al);
+		}
+	} while (aluno_next_action != '3');
 }
 
 void menu_grd_cur() {
@@ -980,12 +1032,12 @@ int main() {
 		char next_action = '0';
 
 		do {
-			print_main_menu();
+			menu_print_main();
 			scanf("\n%c", &next_action);
 
 			switch (next_action) {
 			case ('1'):
-				menu_aluno();
+				menu_aluno(aluno);
 				break;
 			case ('2'):
 				menu_grd_cur();
