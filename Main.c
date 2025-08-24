@@ -14,6 +14,11 @@
 //escopo global.
 int tcc_info = 0;
 
+//MENSAGENS DE ERRO
+//Para ter uma mensagem consistente através do programa, quando o mesmo
+//erro ocorre.
+const char* ERR_INVALID_CHARACTER = "Voce digitou um numero ou caracter invalido. Por favor, tente novamente.";
+
 /*
  * Cada struct é seguido de seus formatadores e suas funções (CRUD, outras).
  * Apenas as funções do primeiro struct serão comentadas, porque o
@@ -622,6 +627,7 @@ void fill_grade_curricular(FILE* file) {
 }
 
 void print_full_grade_curricular(FILE* file) {
+	printf("\n");
 	for (int i = 0; i < NUM_MATERIAS; i++) {
 		GradeCurricular gc_printing = read_grade_curricular(file, i + 389);
 		print_grade_curricular(gc_printing);
@@ -635,21 +641,22 @@ typedef struct _materia {
 	char nome[100];
 	float nota1;
 	float nota2;
+	int faltas;
 	char status[12];
 } Materia;
 
-const char* MATERIA_FORMAT_IN = "(DPAAIN.%03d;%[^;];%f;%f;%[^)])";
-const char* MATERIA_FORMAT_OUT = "(DPAAIN.%03d;%s;%.2f;%.2f;%s)\n";
+const char* MATERIA_FORMAT_IN = "(DPAAIN.%03d;%[^;];%f;%f;%d;%[^)])";
+const char* MATERIA_FORMAT_OUT = "(DPAAIN.%03d;%s;%.2f;%.2f;%d;%s)\n";
 
-void write_materia(FILE* file, int id, char* nome, float nota1, float nota2, char* status) {
+void write_materia(FILE* file, int id, char* nome, float nota1, float nota2, int faltas, char* status) {
 	fseek(file, 0, SEEK_END);
-	fprintf(file, MATERIA_FORMAT_OUT, id, nome, nota1, nota2, status);
+	fprintf(file, MATERIA_FORMAT_OUT, id, nome, nota1, nota2, faltas, status);
 }
 
 Materia read_materia(FILE* file, int id_seek) {
 	fseek(file, 0, SEEK_SET);
 	Materia mt;
-	int id = 0;
+	int id = 0, faltas = 0;
 	char nome[100] = { "\0" }, status[10] = { "\0" };
 	float nota1 = 0, nota2 = 0;
 
@@ -662,11 +669,12 @@ Materia read_materia(FILE* file, int id_seek) {
 	fseek(file, 0, SEEK_SET);
 
 	for (int i = 0; i < count; i++) {
-		fscanf(file, MATERIA_FORMAT_IN, &id, nome, &nota1, &nota2, status);
+		fscanf(file, MATERIA_FORMAT_IN, &id, nome, &nota1, &nota2, &faltas, status);
 		mt.id = id;
 		strcpy(mt.nome, nome);
 		mt.nota1 = nota1;
 		mt.nota2 = nota2;
+		mt.faltas = faltas;
 		strcpy(mt.status, status);
 
 		if (mt.id == id_seek) {
@@ -678,7 +686,7 @@ Materia read_materia(FILE* file, int id_seek) {
 	}
 
 	printf("ERRO: ID de materia invalido.\n");
-	Materia erro = { 0, "\0", 0, 0, "\0" };
+	Materia erro = { 0, "\0", 0, 0, 0, "\0" };
 	return erro;
 }
 
@@ -693,13 +701,13 @@ void delete_materia(FILE* file, int id_seek) {
 	}
 
 	fseek(file, 0, SEEK_SET);
-	int id = 0;
+	int id = 0, faltas = 0;
 	char nome[100] = { "\0" }, status[12] = { "\0" };
 	float nota1 = 0, nota2 = 0;
 	for (int i = 0; i < count; i++) {
-		fscanf(file, MATERIA_FORMAT_IN, &id, nome, &nota1, &nota2, status);
+		fscanf(file, MATERIA_FORMAT_IN, &id, nome, &nota1, &nota2, &faltas, status);
 		if (id != id_seek) {
-			write_materia(new_file, id, nome, nota1, nota2, status);
+			write_materia(new_file, id, nome, nota1, nota2, faltas, status);
 		}
 		fseek(file, 2, SEEK_CUR);
 	}
@@ -715,14 +723,14 @@ void delete_materia(FILE* file, int id_seek) {
 	fopen("materia.dat", "a+");
 }
 
-void update_materia(FILE* file, int id_seek, char* nome, float nota1, float nota2, char* status) {
+void update_materia(FILE* file, int id_seek, char* nome, float nota1, float nota2, int faltas, char* status) {
 	delete_materia(file, id_seek);
-	write_materia(file, id_seek, nome, nota1, nota2, status);
+	write_materia(file, id_seek, nome, nota1, nota2, faltas, status);
 	printf("Materia atualizada com sucesso!\n");
 }
 
 void print_materia(Materia mt) {
-	printf("ID: DPAAIN.%03d, Nome: %s, Nota 1: %.2f, Nota 2: %.2f, %s\n", mt.id, mt.nome, mt.nota1, mt.nota2, mt.status);
+	printf("ID: DPAAIN.%03d, Nome: %s, Nota 1: %.2f, Nota 2: %.2f, Faltas: %d, %s\n", mt.id, mt.nome, mt.nota1, mt.nota2, mt.status);
 }
 
 void fill_materia(FILE* materia, FILE* grade_curricular) {
@@ -741,6 +749,11 @@ void fill_materia(FILE* materia, FILE* grade_curricular) {
 		printf("Insira suas notas na %da materia, separadas por um espaco (Se nao estiverem fechadas ainda, coloque 0) ", i + 1);
 		double nota_1 = 0, nota_2 = 0;
 		scanf("%lf %lf", &nota_1, &nota_2);
+
+		printf("Quantas faltas voce teve nessa materia? ");
+		int faltas = 0;
+		scanf("%d", &faltas);
+
 		printf("Ja Passou ou Reprovou nessa materia, ou ainda esta Cursando? <p/r/c> ");
 		char status_materia = 0;
 try_agn:scanf("\n%c", &status_materia);
@@ -759,7 +772,7 @@ try_agn:scanf("\n%c", &status_materia);
 			printf("Caracter invalido digitado. Por favor, tente novamente.");
 			goto try_agn;
 		}
-		write_materia(materia, digits_materia, gc_to_materia.nome_materia, nota_1, nota_2, status_final);
+		write_materia(materia, digits_materia, gc_to_materia.nome_materia, nota_1, nota_2, faltas, status_final);
 
 		printf("\n");
 	}
@@ -829,7 +842,7 @@ void update_aluno(FILE* file, char* nome, int semestre) {
 }
 
 void print_aluno(Aluno al) {
-	printf("Matrícula: %.0lf, Nome: %s, %do Semestre\n", al.matricula, al.nome, al.semestre);
+	printf("Matricula: %.0lf, Nome: %s, %do Semestre\n", al.matricula, al.nome, al.semestre);
 }
 
 //END OF ALUNO
@@ -943,7 +956,7 @@ void menu_aluno_update_data(FILE* file, Aluno al) {
 			printf("Voltando.\n");
 			break;
 		default:
-			printf("Erro: caracter invalido digitado.\n");
+			printf(ERR_INVALID_CHARACTER);
 		}
 
 	} while (aluno_upd_dat_next_action != '2');
@@ -965,17 +978,45 @@ void menu_aluno(FILE* file) {
 			break;
 		case ('2'):
 			menu_aluno_update_data(file, al);
+			break;
+		case ('3'):
+			printf("Voltando.\n");
+		case ('\n'):
+			break;
+		default:
+			printf(ERR_INVALID_CHARACTER);
 		}
 	} while (aluno_next_action != '3');
 }
 
-void menu_grd_cur() {
+void menu_print_grd_cur_options() {
+	printf("\n1. Ver a grade curricular\n");
+	printf("2. Voltar\n");
+	printf("Nao e possivel fazer alteracoes na grade curricular.\n");
+	printf("\nSua entrada: ");
+}
+
+void menu_grd_cur(FILE* file) {
 	char grd_cur_next_action = '0';
 	do {
-		printf("PLACEHOLDER IMPLEMENTATION. TYPE e (LOWERCASE) TO EXIT.\n");
+		menu_print_grd_cur_options();
 		scanf("\n%c", &grd_cur_next_action);
-	} while (grd_cur_next_action != 'e');
+		switch (grd_cur_next_action) {
+		case ('1'):
+			print_full_grade_curricular(file);
+			break;
+		case('2'):
+			printf("Voltando.\n");
+			break;
+		default:
+			printf(ERR_INVALID_CHARACTER);
+		}
+	} while (grd_cur_next_action != '2');
 }
+
+/*void menu_print_materia_options() {
+	printf("\n1. Ver materias")
+}*/
 
 void menu_materia() {
 	char materia_next_action = '0';
@@ -1023,7 +1064,7 @@ int main() {
 		printf("ATENCAO: ESSE PROGRAMA NAO SUPORTA CARACTERES ESPECIAIS COMO LETRAS ACENTUADAS E O CEDILHA. NAO UTILIZE-OS NAS SUAS ENTRADAS.\n");
 		printf("Arquivos criados/abertos com sucesso.\n");
 		char yn_first_execution = 'n';
-		printf("Essa e a primeira vez que esta executando esse programa? <s/n> ");
+		printf("Essa e a primeira vez que esta executando esse programa? <s/N> ");
 		scanf("%c", &yn_first_execution);
 		if (yn_first_execution == 's') {
 			initial_filling(grade_curricular, aluno, materia, tcc, estagio, atividade_complementar);
@@ -1040,7 +1081,7 @@ int main() {
 				menu_aluno(aluno);
 				break;
 			case ('2'):
-				menu_grd_cur();
+				menu_grd_cur(grade_curricular);
 				break;
 			case ('3'):
 				menu_materia();
@@ -1056,8 +1097,10 @@ int main() {
 				break;
 			case ('7'):
 				printf("Ate mais!\n");
+			case ('\n'):
+				break;
 			default:
-				printf("Voce digitou um numero ou caracter invalido. Por favor, tente novamente.\n");
+				printf(ERR_INVALID_CHARACTER);
 			}
 		} while (next_action != '7');
 	}
