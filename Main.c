@@ -14,10 +14,28 @@
 //escopo global.
 int tcc_info = 0;
 
-//MENSAGENS DE ERRO
+//MENSAGENS
 //Para ter uma mensagem consistente através do programa, quando o mesmo
-//erro ocorre.
-const char* ERR_INVALID_CHARACTER = "Voce digitou um numero ou caracter invalido. Por favor, tente novamente.";
+//erro ou situação ocorrem.
+const char* ERR_INVALID_CHARACTER = "\nVoce digitou um numero ou caracter invalido. Por favor, tente novamente.\n";
+const char* ERR_INVALID_PRINT_TYPE = "\nSe voce esta vendo essa mensagem, houve um erro por parte do programador. Por favor, comunique isso a ele.\n";
+const char* ERR_NO_RESULT = "\nEssa consulta nao retornou nenhum resultado. Certifique-se de que digitou corretamente.\n";
+
+const char* MSG_EXACT_SEARCH = "\nAtencao: esse mecanismo de pesquisa e rudimentar e apenas encontra resultados se a consulta for exata.\nSe voce nao encontrar o que procura e tiver certeza de que existe, procure na listagem geral desse tipo.\n";
+const char* MSG_SAME_UPDATE = "\nCaso nao queira atualizar algum dos dados, apenas insira o mesmo.\n";
+
+//FUNÇÕES AUXILIARES
+//Funções que nasceram de código reaproveitado.
+int count_line_breaks(FILE* file) {
+	fseek(file, 0, SEEK_SET);
+	int count = 0, c = 0;
+	while ((c = fgetc(file)) != EOF) {
+		if (c == '\n') {
+			count++;
+		}
+	}
+	return count;
+}
 
 /*
  * Cada struct é seguido de seus formatadores e suas funções (CRUD, outras).
@@ -51,17 +69,11 @@ void write_atividade_complementar(FILE* file, int id, char* nome, int horas) {
  * retorna um AtividadeComplementar vazio.
  */
 AtividadeComplementar read_atividade_complementar(FILE* file, int id_seek) {
-	fseek(file, 0, SEEK_SET);
 	AtividadeComplementar at;
 	int id = 0, horas = 0;
 	char nome[100] = { "\0" };
 
-	int count = 0, c = 0;
-	while ((c = fgetc(file)) != EOF) {
-		if (c == '\n') {
-			count++;
-		}
-	}
+	int count = count_line_breaks(file);
 	fseek(file, 0, SEEK_SET);
 
 	for (int i = 0; i < count; i++) {
@@ -92,13 +104,8 @@ AtividadeComplementar read_atividade_complementar(FILE* file, int id_seek) {
  */
 void delete_atividade_complementar(FILE* file, int id_seek) {
 	FILE* new_file = fopen("atividade_complementar_new.dat", "w+");
-	fseek(file, 0, SEEK_SET);
-	int count = 0, c = 0;
-	while ((c = fgetc(file)) != EOF) {
-		if (c == '\n') {
-			count++;
-		}
-	}
+
+	int count = count_line_breaks(file);
 
 	fseek(file, 0, SEEK_SET);
 	int id = 0, horas = 0;
@@ -141,21 +148,41 @@ void print_atividade_complementar(AtividadeComplementar at) {
 }
 
 /*
+ * Essa função imprime todos desse tipo guardados no arquivo.
+ */
+void print_all_atv_com(FILE* file) {
+	int id = 0, horas = 0;
+	char nome[100] = { "\0" };
+	AtividadeComplementar at;
+
+	int count = count_line_breaks(file);
+
+	printf("\n");
+
+	fseek(file, 0, SEEK_SET);
+
+	for (int i = 0; i < count; i++) {
+		fscanf(file, ATV_COM_FORMAT_IN, &id, nome, &horas);
+		fseek(file, 2, SEEK_CUR);
+
+		at.id = id;
+		strcpy(at.nome, nome);
+		at.horas = horas;
+
+		print_atividade_complementar(at);
+	}
+}
+
+/*
  * Essa função retorna o ID da última atividade complementar
  * armazenada no arquivo, para que a função fill_atividade_complementar
  * não repita IDs por utilizar variáveis alocadas dinâmicamente.
  */
 int atv_com_get_last_id(FILE* file) {
-	fseek(file, 0, SEEK_SET);
 	int id = 0, horas = 0;
 	char nome[100] = { "\0" };
 
-	int count = 0, c = 0;
-	while ((c = fgetc(file)) != EOF) {
-		if (c == '\n') {
-			count++;
-		}
-	}
+	int count = count_line_breaks(file);
 	fseek(file, 0, SEEK_SET);
 
 	int atv_com_highest_id = 0;
@@ -216,17 +243,11 @@ void write_estagio(FILE* file, int id, char* nome, int horas) {
 }
 
 Estagio read_estagio(FILE* file, int id_seek) {
-	fseek(file, 0, SEEK_SET);
 	Estagio es;
 	int id = 0, horas = 0;
 	char nome[100] = { "\0" };
 
-	int count = 0, c = 0;
-	while ((c = fgetc(file)) != EOF) {
-		if (c == '\n') {
-			count++;
-		}
-	}
+	int count = count_line_breaks(file);
 	fseek(file, 0, SEEK_SET);
 
 	for (int i = 0; i < count; i++) {
@@ -250,15 +271,9 @@ Estagio read_estagio(FILE* file, int id_seek) {
 
 void delete_estagio(FILE* file, int id_seek) {
 	FILE* new_file = fopen("estagio_new.dat", "w+");
+	int count = count_line_breaks(file);
 	fseek(file, 0, SEEK_SET);
-	int count = 0, c = 0;
-	while ((c = fgetc(file)) != EOF) {
-		if (c == '\n') {
-			count++;
-		}
-	}
 
-	fseek(file, 0, SEEK_SET);
 	int id = 0, horas = 0;
 	char nome[100] = { '\0' };
 	for (int i = 0; i < count; i++) {
@@ -290,17 +305,35 @@ void print_estagio(Estagio es) {
 	printf("ID: %d, Nome: %s, %d horas\n", es.id, es.nome, es.horas);
 }
 
+void print_all_estagio(FILE* file) {
+	int id = 0, horas = 0;
+	char nome[100] = { "\0" };
+	Estagio es;
+
+	int count = count_line_breaks(file);
+
+	printf("\n");
+
+	fseek(file, 0, SEEK_SET);
+
+	for (int i = 0; i < count; i++) {
+		fscanf(file, ATV_COM_FORMAT_IN, &id, nome, &horas);
+		fseek(file, 2, SEEK_CUR);
+
+		es.id = id;
+		strcpy(es.nome, nome);
+		es.horas = horas;
+
+		print_estagio(es);
+	}
+}
+
 int est_get_last_id(FILE* file) {
 	fseek(file, 0, SEEK_SET);
 	int id = 0, horas = 0;
 	char nome[100] = { "\0" };
 
-	int count = 0, c = 0;
-	while ((c = fgetc(file)) != EOF) {
-		if (c == '\n') {
-			count++;
-		}
-	}
+	int count = count_line_breaks(file);
 	fseek(file, 0, SEEK_SET);
 
 	int est_highest_id = 0;
@@ -355,17 +388,11 @@ void write_tcc(FILE* file, int id, char* nome, char* orientador) {
 }
 
 TCC read_tcc(FILE* file, int id_seek) {
-	fseek(file, 0, SEEK_SET);
 	TCC tc;
 	int id = 0;
 	char nome[100] = { "\0" }, orientador[100] = { '\0' };
 
-	int count = 0, c = 0;
-	while ((c = fgetc(file)) != EOF) {
-		if (c == '\n') {
-			count++;
-		}
-	}
+	int count = count_line_breaks(file);
 	fseek(file, 0, SEEK_SET);
 
 	for (int i = 0; i < count; i++) {
@@ -389,13 +416,7 @@ TCC read_tcc(FILE* file, int id_seek) {
 
 void delete_tcc(FILE* file, int id_seek) {
 	FILE* new_file = fopen("tcc_new.dat", "w+");
-	fseek(file, 0, SEEK_SET);
-	int count = 0, c = 0;
-	while ((c = fgetc(file)) != EOF) {
-		if (c == '\n') {
-			count++;
-		}
-	}
+	int count = count_line_breaks(file);
 
 	fseek(file, 0, SEEK_SET);
 	int id = 0;
@@ -429,17 +450,34 @@ void print_tcc(TCC tcc) {
 	printf("ID: %d, Nome: %s, Orientador: %s\n", tcc.id, tcc.nome, tcc.orientador);
 }
 
-int tcc_get_last_id(FILE* file) {
+void print_all_tcc(FILE* file) {
+	int id = 0;
+	char nome[100] = { "\0" }, orientador[100] = { '\0' };
+	TCC tc;
+
+	int count = count_line_breaks(file);
+
+	printf("\n");
+
 	fseek(file, 0, SEEK_SET);
+
+	for (int i = 0; i < count; i++) {
+		fscanf(file, TCC_FORMAT_IN, &id, nome, orientador);
+		fseek(file, 2, SEEK_CUR);
+
+		tc.id = id;
+		strcpy(tc.nome, nome);
+		strcpy(tc.orientador, orientador);
+
+		print_tcc(tc);
+	}
+}
+
+int tcc_get_last_id(FILE* file) {
 	int id = 0;
 	char nome[100] = { "\0" }, orientador[100] = {'\0'};
 
-	int count = 0, c = 0;
-	while ((c = fgetc(file)) != EOF) {
-		if (c == '\n') {
-			count++;
-		}
-	}
+	int count = count_line_breaks(file);
 	fseek(file, 0, SEEK_SET);
 
 	int tcc_highest_id = 0;
@@ -493,12 +531,7 @@ GradeCurricular read_grade_curricular(FILE* file, int id_seek) {
 	int id = 0;
 	char nome_materia[100] = { "\0" };
 
-	int count = 0, c = 0;
-	while ((c = fgetc(file)) != EOF) {
-		if (c == '\n') {
-			count++;
-		}
-	}
+	int count = count_line_breaks(file);
 	fseek(file, 0, SEEK_SET);
 
 	for (int i = 0; i < count; i++) {
@@ -521,15 +554,9 @@ GradeCurricular read_grade_curricular(FILE* file, int id_seek) {
 
 void delete_grade_curricular(FILE* file, int id_seek) {
 	FILE* new_file = fopen("grade_curricular_new.dat", "w+");
+	int count = count_line_breaks(file);
 	fseek(file, 0, SEEK_SET);
-	int count = 0, c = 0;
-	while ((c = fgetc(file)) != EOF) {
-		if (c == '\n') {
-			count++;
-		}
-	}
 
-	fseek(file, 0, SEEK_SET);
 	int id = 0;
 	char nome_materia[100] = { "\0" };
 	for (int i = 0; i < count; i++) {
@@ -654,18 +681,12 @@ void write_materia(FILE* file, int id, char* nome, float nota1, float nota2, int
 }
 
 Materia read_materia(FILE* file, int id_seek) {
-	fseek(file, 0, SEEK_SET);
 	Materia mt;
 	int id = 0, faltas = 0;
 	char nome[100] = { "\0" }, status[10] = { "\0" };
 	float nota1 = 0, nota2 = 0;
 
-	int count = 0, c = 0;
-	while ((c = fgetc(file)) != EOF) {
-		if (c == '\n') {
-			count++;
-		}
-	}
+	int count = count_line_breaks(file);
 	fseek(file, 0, SEEK_SET);
 
 	for (int i = 0; i < count; i++) {
@@ -693,12 +714,7 @@ Materia read_materia(FILE* file, int id_seek) {
 void delete_materia(FILE* file, int id_seek) {
 	FILE* new_file = fopen("materia_new.dat", "w+");
 	fseek(file, 0, SEEK_SET);
-	int count = 0, c = 0;
-	while ((c = fgetc(file)) != EOF) {
-		if (c == '\n') {
-			count++;
-		}
-	}
+	int count = count_line_breaks(file);
 
 	fseek(file, 0, SEEK_SET);
 	int id = 0, faltas = 0;
@@ -730,7 +746,34 @@ void update_materia(FILE* file, int id_seek, char* nome, float nota1, float nota
 }
 
 void print_materia(Materia mt) {
-	printf("ID: DPAAIN.%03d, Nome: %s, Nota 1: %.2f, Nota 2: %.2f, Faltas: %d, %s\n", mt.id, mt.nome, mt.nota1, mt.nota2, mt.status);
+	printf("ID: DPAAIN.%03d, Nome: %s, Nota 1: %.2f, Nota 2: %.2f, Faltas: %d, %s\n", mt.id, mt.nome, mt.nota1, mt.nota2, mt.faltas, mt.status);
+}
+
+void print_all_materia(FILE* file) {
+	int id = 0, faltas = 0;
+	char nome[100] = { "\0" }, status[10] = { "\0" };
+	float nota1 = 0, nota2 = 0;
+	Materia mt;
+
+	int count = count_line_breaks(file);
+
+	printf("\n");
+
+	fseek(file, 0, SEEK_SET);
+
+	for (int i = 0; i < count; i++) {
+		fscanf(file, MATERIA_FORMAT_IN, &id, nome, &nota1, &nota2, &faltas, status);
+		fseek(file, 2, SEEK_CUR);
+
+		mt.id = id;
+		strcpy(mt.nome, nome);
+		mt.nota1 = nota1;
+		mt.nota2 = nota2;
+		mt.faltas = faltas;
+		strcpy(mt.status, status);
+
+		print_materia(mt);
+	}
 }
 
 void fill_materia(FILE* materia, FILE* grade_curricular) {
@@ -896,6 +939,8 @@ void initial_filling(FILE* grade_curricular, FILE* aluno, FILE* materia, FILE* t
 	}
 }
 
+//END OF INITIAL FILLING
+
 void menu_print_main() {
 	printf("\n-- AGENDA 33 v1.0 --\n");
 	printf("Pressione o numero desejado e depois tecle ENTER\n");
@@ -909,6 +954,8 @@ void menu_print_main() {
 	printf("\n");
 	printf("Sua entrada: ");
 }
+
+//END OF MENU MAIN
 
 void menu_print_aluno_options(int type) {
 	switch (type) {
@@ -925,7 +972,7 @@ void menu_print_aluno_options(int type) {
 		printf("\nSua entrada: ");
 		break;
 	default:
-		printf("\nSe voce esta vendo essa mensagem, houve um erro da parte do programador. Por favor, comunique isso a ele.\n");
+		printf(ERR_INVALID_PRINT_TYPE);
 	}
 }
 
@@ -937,7 +984,7 @@ void menu_aluno_update_data(FILE* file, Aluno al) {
 		scanf("\n%c", &aluno_upd_dat_next_action);
 		switch (aluno_upd_dat_next_action) {
 		case ('1'):
-			printf("\nSe nao quiser alterar um ou ambos os valores, apenas digite o mesmo valor\n");
+			printf(MSG_SAME_UPDATE);
 			
 			printf("\nNome atualmente cadastrado: %s\n", al.nome);
 			printf("Insira o novo nome: ");
@@ -989,6 +1036,8 @@ void menu_aluno(FILE* file) {
 	} while (aluno_next_action != '3');
 }
 
+//END OF MENU ALUNO
+
 void menu_print_grd_cur_options() {
 	printf("\n1. Ver a grade curricular\n");
 	printf("2. Voltar\n");
@@ -1014,41 +1063,545 @@ void menu_grd_cur(FILE* file) {
 	} while (grd_cur_next_action != '2');
 }
 
-/*void menu_print_materia_options() {
-	printf("\n1. Ver materias")
-}*/
+//END OF MENU GRD_CUR
 
-void menu_materia() {
+void menu_print_materia_options(int type) {
+	switch (type) {
+	case (1):
+		printf("\n1. Ver materias\n");
+		printf("2. Atualizar materias\n");
+		printf("3. Cadastrar novas materias\n");
+		printf("4. Deletar materias\n");
+		printf("5. Voltar\n");
+		printf("\nSua entrada: ");
+		break;
+	case (2):
+		printf("\n1.Pesquisar por nome\n");
+		printf("2. Voltar\n");
+		printf("\nSua entrada: ");
+		break;
+	default:
+		printf(ERR_INVALID_PRINT_TYPE);
+	}
+}
+
+menu_materia_search_by_name(FILE* file) {
+	int count = count_line_breaks(file);
+	int id = 0, faltas = 0;
+	char nome[100] = { '\0' }, status[15] = { '\0' }, nome_search[100] = { '\0' };
+	float nota_1 = 0, nota_2 = 0;
+
+	printf(MSG_EXACT_SEARCH);
+	printf("Sua pesquisa: ");
+	scanf("\n%[^\n]", &nome_search);
+	
+	fseek(file, 0, SEEK_SET);
+
+	for (int i = 0; i < count; i++) {
+		fscanf(file, MATERIA_FORMAT_IN, &id, nome, &nota_1, &nota_2, &faltas, status);
+
+		if (strcmp(nome, nome_search) == 0) {
+			Materia search_result = read_materia(file, id);
+			printf("Materia encontrada!\n");
+			printf("Os dados da materia sao: ");
+			print_materia(search_result);
+			return;
+		}
+		else {
+			fseek(file, 2, SEEK_CUR);
+		}
+	}
+	printf(ERR_NO_RESULT);
+}
+
+void menu_materia_search(FILE* file) {
+	char menu_mat_search_nxt_act = '0';
+	do {
+		print_all_materia(file);
+		menu_print_materia_options(2);
+		scanf("\n%c", &menu_mat_search_nxt_act);
+		switch (menu_mat_search_nxt_act) {
+		case ('1'):
+			menu_materia_search_by_name(file);
+			break;
+		case ('2'):
+			break;
+		default:
+			printf(ERR_INVALID_CHARACTER);
+		}
+		
+	} while (menu_mat_search_nxt_act != '2');
+}
+
+void menu_materia_update(FILE* file) {
+	print_all_materia(file);
+	printf("\nInsira o ID da materia que deseja atualizar: ");
+	int mat_id_for_update = 0;
+	scanf("%d", &mat_id_for_update);
+
+	Materia mat = read_materia(file, mat_id_for_update);
+	int faltas = 0;
+	char nome[100] = { '\0' }, status[15] = { '\0' };
+	float nota1 = 0, nota2 = 0;
+
+	if (mat.id != 0) {
+		printf(MSG_SAME_UPDATE);
+		printf("Nome atual: %s\n", mat.nome);
+		printf("Insira o novo nome: ");
+		scanf("\n%[^\n]", &nome);
+
+		printf("Notas atuais: %.2f %.2f\n", mat.nota1, mat.nota2);
+		printf("Insira as novas notas: ");
+		scanf("%f %f", &nota1, &nota2);
+
+		printf("Faltas atuais: %d\n", mat.faltas);
+		printf("Insira o novo numero de faltas: ");
+		scanf("%d", &faltas);
+
+		printf("Status atual: %s\n", mat.status);
+		printf("Insira o novo status: ", &status);
+		scanf("\n%[^\n]", &status);
+
+		update_materia(file, mat_id_for_update, nome, nota1, nota2, faltas, status);
+	}
+	else {
+		printf(ERR_NO_RESULT);
+	}
+}
+
+void menu_materia_delete(FILE* file) {
+	print_all_materia(file);
+
+	printf("Digite o ID da materia a ser deletada: ");
+	int id_materia_delete = 0;
+	scanf("%d", &id_materia_delete);
+
+	delete_materia(file, id_materia_delete);
+}
+
+void menu_materia(FILE* materia, FILE* grd_cur) {
 	char materia_next_action = '0';
 	do {
-		printf("PLACEHOLDER IMPLEMENTATION. TYPE e (LOWERCASE) TO EXIT.\n");
+		menu_print_materia_options(1);
 		scanf("\n%c", &materia_next_action);
-	} while (materia_next_action != 'e');
+		switch (materia_next_action) {
+		case ('1'):
+			menu_materia_search(materia);
+			break;
+		case ('2'):
+			menu_materia_update(materia);
+			break;
+		case ('3'):
+			fill_materia(materia, grd_cur);
+			break;
+		case ('4'):
+			menu_materia_delete(materia);
+			break;
+		case ('5'):
+			printf("\nVoltando.\n");
+			break;
+		default:
+			printf(ERR_INVALID_CHARACTER);
+		}
+	} while (materia_next_action != '5');
 }
 
-void menu_atv_com() {
+//END OF MENU MATERIA
+
+void menu_print_atv_com_options(int type) {
+	switch (type) {
+	case (1):
+		printf("\n1. Ver atividades complementares\n");
+		printf("2. Atualizar atividades complementares\n");
+		printf("3. Cadastrar novas atividades complementares\n");
+		printf("4. Deletar atividades complementares\n");
+		printf("5. Voltar\n");
+		printf("\nSua entrada: ");
+		break;
+	case (2):
+		printf("\n1.Pesquisar por nome\n");
+		printf("2. Voltar\n");
+		printf("\nSua entrada: ");
+		break;
+	default:
+		printf(ERR_INVALID_PRINT_TYPE);
+	}
+}
+
+void menu_atv_com_search_by_name(FILE* file) {
+	int count = count_line_breaks(file);
+	int id = 0, horas = 0;
+	char nome[100] = { '\0' }, nome_search[100] = { '\0' };
+
+	printf(MSG_EXACT_SEARCH);
+	printf("Sua pesquisa: ");
+	scanf("\n%[^\n]", &nome_search);
+
+	fseek(file, 0, SEEK_SET);
+
+	for (int i = 0; i < count; i++) {
+		fscanf(file, ATV_COM_FORMAT_IN, &id, nome, &horas);
+
+		if (strcmp(nome, nome_search) == 0) {
+			AtividadeComplementar search_result = read_atividade_complementar(file, id);
+			printf("Atividade complementar encontrada!\n");
+			printf("Os dados da atividade complementar sao: ");
+			print_atividade_complementar(search_result);
+			return;
+		}
+		else {
+			fseek(file, 2, SEEK_CUR);
+		}
+	}
+	printf(ERR_NO_RESULT);
+}
+
+void menu_atv_com_search(FILE* file) {
+	char menu_atv_com_search_nxt_act = '0';
+	do {
+		print_all_atv_com(file);
+		menu_print_atv_com_options(2);
+		scanf("\n%c", &menu_atv_com_search_nxt_act);
+		switch (menu_atv_com_search_nxt_act) {
+		case ('1'):
+			menu_atv_com_search_by_name(file);
+			break;
+		case ('2'):
+			break;
+		default:
+			printf(ERR_INVALID_CHARACTER);
+		}
+
+	} while (menu_atv_com_search_nxt_act != '2');
+}
+
+void menu_atv_com_update(FILE* file) {
+	print_all_atv_com(file);
+	printf("\nInsira o ID da atividade complementar que deseja atualizar: ");
+	int atv_com_id_for_update = 0;
+	scanf("%d", &atv_com_id_for_update);
+
+	AtividadeComplementar at = read_atividade_complementar(file, atv_com_id_for_update);
+	int horas = 0;
+	char nome[100] = { '\0' };
+
+	if (at.id != 0) {
+		printf(MSG_SAME_UPDATE);
+		printf("Nome atual: %s\n", at.nome);
+		printf("Insira o novo nome: ");
+		scanf("\n%[^\n]", &nome);
+
+		printf("Horas atuais: %.2f %.2f\n", at.horas);
+		printf("Insira as novas horas: ");
+		scanf("%d", &horas);
+
+		update_atividade_complementar(file, atv_com_id_for_update, nome, horas);
+	}
+	else {
+		printf(ERR_NO_RESULT);
+	}
+}
+
+void menu_atv_com_delete(FILE* file) {
+	print_all_atv_com(file);
+
+	printf("Digite o ID da atividade complementar a ser deletada: ");
+	int id_atv_com_delete = 0;
+	scanf("%d", &id_atv_com_delete);
+
+	delete_atividade_complementar(file, id_atv_com_delete);
+}
+
+void menu_atv_com(FILE* file) {
 	char atv_com_next_action = '0';
 	do {
-		printf("PLACEHOLDER IMPLEMENTATION. TYPE e (LOWERCASE) TO EXIT.\n");
+		menu_print_atv_com_options(1);
 		scanf("\n%c", &atv_com_next_action);
-	} while (atv_com_next_action != 'e');
+		switch (atv_com_next_action) {
+		case ('1'):
+			menu_atv_com_search(file);
+			break;
+		case ('2'):
+			menu_atv_com_update(file);
+			break;
+		case ('3'):
+			fill_atividade_complementar(file);
+			break;
+		case ('4'):
+			menu_atv_com_delete(file);
+			break;
+		case ('5'):
+			break;
+		default:
+			printf(ERR_INVALID_CHARACTER);
+		}
+	} while (atv_com_next_action != '5');
 }
 
-void menu_estagio() {
+//END OF MENU ATV_COM
+
+void menu_print_estagio_options(int type) {
+	switch (type) {
+	case (1):
+		printf("\n1. Ver estagios\n");
+		printf("2. Atualizar estagios\n");
+		printf("3. Cadastrar novos estagios\n");
+		printf("4. Deletar estagios\n");
+		printf("5. Voltar\n");
+		printf("\nSua entrada: ");
+		break;
+	case (2):
+		printf("\n1.Pesquisar por nome\n");
+		printf("2. Voltar\n");
+		printf("\nSua entrada: ");
+		break;
+	default:
+		printf(ERR_INVALID_PRINT_TYPE);
+	}
+}
+
+void menu_estagio_search_by_name(FILE* file) {
+	int count = count_line_breaks(file);
+	int id = 0, horas = 0;
+	char nome[100] = { '\0' }, nome_search[100] = { '\0' };
+
+	printf(MSG_EXACT_SEARCH);
+	printf("Sua pesquisa: ");
+	scanf("\n%[^\n]", &nome_search);
+
+	fseek(file, 0, SEEK_SET);
+
+	for (int i = 0; i < count; i++) {
+		fscanf(file, ESTAGIO_FORMAT_IN, &id, nome, &horas);
+
+		if (strcmp(nome, nome_search) == 0) {
+			Estagio search_result = read_estagio(file, id);
+			printf("Estagio encontrado!\n");
+			printf("Os dados do estagio sao: ");
+			print_estagio(search_result);
+			return;
+		}
+		else {
+			fseek(file, 2, SEEK_CUR);
+		}
+	}
+	printf(ERR_NO_RESULT);
+}
+
+void menu_estagio_search(FILE* file) {
+	char menu_estagio_search_nxt_act = '0';
+	do {
+		print_all_estagio(file);
+		menu_print_estagio_options(2);
+		scanf("\n%c", &menu_estagio_search_nxt_act);
+		switch (menu_estagio_search_nxt_act) {
+		case ('1'):
+			menu_estagio_search_by_name(file);
+			break;
+		case ('2'):
+			break;
+		default:
+			printf(ERR_INVALID_CHARACTER);
+		}
+
+	} while (menu_estagio_search_nxt_act != '2');
+}
+
+void menu_estagio_update(FILE* file) {
+	print_all_estagio(file);
+	printf("\nInsira o ID do estagio que deseja atualizar: ");
+	int estagio_id_for_update = 0;
+	scanf("%d", &estagio_id_for_update);
+
+	Estagio es = read_estagio(file, estagio_id_for_update);
+	int horas = 0;
+	char nome[100] = { '\0' };
+
+	if (es.id != 0) {
+		printf(MSG_SAME_UPDATE);
+		printf("Nome atual: %s\n", es.nome);
+		printf("Insira o novo nome: ");
+		scanf("\n%[^\n]", &nome);
+
+		printf("Horas atuais: %.2f %.2f\n", es.horas);
+		printf("Insira as novas horas: ");
+		scanf("%d", &horas);
+
+		update_estagio(file, estagio_id_for_update, nome, horas);
+	}
+	else {
+		printf(ERR_NO_RESULT);
+	}
+}
+
+void menu_estagio_delete(FILE* file) {
+	print_all_atv_com(file);
+
+	printf("Digite o ID da atividade complementar a ser deletada: ");
+	int id_estagio_delete = 0;
+	scanf("%d", &id_estagio_delete);
+
+	delete_estagio(file, id_estagio_delete);
+}
+
+void menu_estagio(FILE* file) {
 	char estagio_next_action = '0';
 	do {
-		printf("PLACEHOLDER IMPLEMENTATION. TYPE e (LOWERCASE) TO EXIT.\n");
+		menu_print_estagio_options(1);
 		scanf("\n%c", &estagio_next_action);
-	} while (estagio_next_action != 'e');
+		switch (estagio_next_action) {
+		case ('1'):
+			menu_estagio_search(file);
+			break;
+		case ('2'):
+			menu_estagio_update(file);
+			break;
+		case ('3'):
+			fill_estagio(file);
+			break;
+		case ('4'):
+			menu_estagio_delete(file);
+			break;
+		case ('5'):
+			break;
+		default:
+			printf(ERR_INVALID_CHARACTER);
+		}
+	} while (estagio_next_action != '5');
 }
 
-void menu_tcc() {
+//END OF MENU ESTAGIO
+
+void menu_print_tcc_options(int type) {
+	switch (type) {
+	case (1):
+		printf("\n1. Ver TCCs\n");
+		printf("2. Atualizar TCCs\n");
+		printf("3. Cadastrar novos TCCs\n");
+		printf("4. Deletar TCCs\n");
+		printf("5. Voltar\n");
+		printf("\nSua entrada: ");
+		break;
+	case (2):
+		printf("\n1.Pesquisar por nome\n");
+		printf("2. Voltar\n");
+		printf("\nSua entrada: ");
+		break;
+	default:
+		printf(ERR_INVALID_PRINT_TYPE);
+	}
+}
+
+void menu_tcc_search_by_name(FILE* file) {
+	int count = count_line_breaks(file);
+	int id = 0;
+	char nome[100] = { '\0' }, orientador[100] = { '\0' }, nome_search[100] = { '\0' };
+
+	printf(MSG_EXACT_SEARCH);
+	printf("Sua pesquisa: ");
+	scanf("\n%[^\n]", &nome_search);
+
+	fseek(file, 0, SEEK_SET);
+
+	for (int i = 0; i < count; i++) {
+		fscanf(file, TCC_FORMAT_IN, &id, nome, orientador);
+
+		if (strcmp(nome, nome_search) == 0) {
+			TCC search_result = read_tcc(file, id);
+			printf("TCC encontrado!\n");
+			printf("Os dados do TCC sao: ");
+			print_tcc(search_result);
+			return;
+		}
+		else {
+			fseek(file, 2, SEEK_CUR);
+		}
+	}
+	printf(ERR_NO_RESULT);
+}
+
+void menu_tcc_search(FILE* file) {
+	char menu_tcc_search_nxt_act = '0';
+	do {
+		print_all_tcc(file);
+		menu_print_tcc_options(2);
+		scanf("\n%c", &menu_tcc_search_nxt_act);
+		switch (menu_tcc_search_nxt_act) {
+		case ('1'):
+			menu_tcc_search_by_name(file);
+			break;
+		case ('2'):
+			break;
+		default:
+			printf(ERR_INVALID_CHARACTER);
+		}
+
+	} while (menu_tcc_search_nxt_act != '2');
+}
+
+void menu_tcc_update(FILE* file) {
+	print_all_tcc(file);
+	printf("\nInsira o ID do TCC que deseja atualizar: ");
+	int tcc_id_for_update = 0;
+	scanf("%d", &tcc_id_for_update);
+
+	TCC tc = read_tcc(file, tcc_id_for_update);
+	char nome[100] = { '\0' }, orientador[100] = { '\0' };
+
+	if (tc.id != 0) {
+		printf(MSG_SAME_UPDATE);
+		printf("Nome atual: %s\n", tc.nome);
+		printf("Insira o novo nome: ");
+		scanf("\n%[^\n]", &nome);
+
+		printf("Orientador atual: %s\n", tc.orientador);
+		printf("Insira o novo orientador: ");
+		scanf("\n%[^\n]", &orientador);
+
+		update_tcc(file, tcc_id_for_update, nome, orientador);
+	}
+	else {
+		printf(ERR_NO_RESULT);
+	}
+}
+
+void menu_tcc_delete(FILE* file) {
+	print_all_tcc(file);
+
+	printf("Digite o ID do TCC a ser deletado: ");
+	int id_tcc_delete = 0;
+	scanf("%d", &id_tcc_delete);
+
+	delete_tcc(file, id_tcc_delete);
+}
+
+void menu_tcc(FILE* file) {
 	char tcc_next_action = '0';
 	do {
-		printf("PLACEHOLDER IMPLEMENTATION. TYPE e (LOWERCASE) TO EXIT.\n");
+		menu_print_tcc_options(1);
 		scanf("\n%c", &tcc_next_action);
-	} while (tcc_next_action != 'e');
+		switch (tcc_next_action) {
+		case ('1'):
+			menu_tcc_search(file);
+			break;
+		case ('2'):
+			menu_tcc_update(file);
+			break;
+		case ('3'):
+			fill_tcc(file);
+			break;
+		case ('4'):
+			menu_tcc_delete(file);
+			break;
+		case ('5'):
+			break;
+		default:
+			printf(ERR_INVALID_CHARACTER);
+		}
+	} while (tcc_next_action != '5');
 }
+
+//END OF MENU TCC
 
 int main() {
 	FILE* grade_curricular, *aluno, *materia, *tcc, *estagio, *atividade_complementar;
@@ -1084,16 +1637,16 @@ int main() {
 				menu_grd_cur(grade_curricular);
 				break;
 			case ('3'):
-				menu_materia();
+				menu_materia(materia, grade_curricular);
 				break;
 			case ('4'):
-				menu_atv_com();
+				menu_atv_com(atividade_complementar);
 				break;
 			case ('5'):
-				menu_estagio();
+				menu_estagio(estagio);
 				break;
 			case ('6'):
-				menu_tcc();
+				menu_tcc(tcc);
 				break;
 			case ('7'):
 				printf("Ate mais!\n");
